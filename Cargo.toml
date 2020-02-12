@@ -1,0 +1,10 @@
+[package]
+name = "t2048"
+description = "A basic 2048 clone, made to learn more about Rust & termion."
+version = "0.1.0"
+authors = ["Davis Namsons <davisnamsons@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rand = "0.7.3"
+termion = "1.5.5"
