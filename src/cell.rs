@@ -3,6 +3,14 @@ use termion::color::{
     Blue, Cyan, Fg, Green, LightCyan, LightGreen, LightMagenta, LightRed, LightYellow, Magenta,
     Red, Reset, Yellow,
 };
+use termion::cursor::Left;
+
+/// The top of a cell
+const BLOCK_TOP: &str = "┌────────────┐";
+/// The middle parts of a cell
+const BLOCK_MIDDLE: &str = "│            │";
+/// The bottom of a cell
+const BLOCK_BOTTOM: &str = "└────────────┘";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Cell {
@@ -16,7 +24,7 @@ impl Cell {
     }
 
     /// Determines the cell's value and returns the escape sequence for the appropriate value.
-    pub fn color(self) -> String {
+    pub fn color(&self) -> String {
         match self.value {
             8 => format!("{}", Fg(Blue)),
             16 => format!("{}", Fg(Yellow)),
@@ -51,17 +59,31 @@ impl Cell {
 
 impl fmt::Display for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.value == 0 {
-            write!(f, "│            │")
-        } else {
-            write!(
-                f,
+        let mut value: String = String::from(BLOCK_MIDDLE);
+        if self.value != 0 {
+            value = format!(
                 "│{color}{:^12}{reset}│",
                 self.value,
                 color = self.color(),
                 reset = Fg(Reset)
-            )
+            );
         }
+
+        write!(
+            f,
+            "{top}\
+            \n{move_left}{middle}\
+            \n{move_left}{middle}\
+            \n{move_left}{value}\
+            \n{move_left}{middle}\
+            \n{move_left}{middle}\
+            \n{move_left}{bottom}",
+            top = BLOCK_TOP,
+            middle = BLOCK_MIDDLE,
+            value = value,
+            bottom = BLOCK_BOTTOM,
+            move_left = Left(14)
+        )
     }
 }
 

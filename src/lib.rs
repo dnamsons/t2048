@@ -17,13 +17,6 @@ const BOARD_HEIGHT: usize = 4;
 /// Board width in cells
 const BOARD_WIDTH: usize = 4;
 
-/// The top of a cell
-const BLOCK_TOP: &str = "┌────────────┐";
-/// The middle parts of a cell
-const BLOCK_MIDDLE: &str = "│            │";
-/// The bottom of a cell
-const BLOCK_BOTTOM: &str = "└────────────┘";
-
 // TODO: Random additions, got 6 etc. Find the bug
 // TODO: unable to loose; fix that
 
@@ -75,7 +68,10 @@ impl Game {
                     key if Direction::from_input(key).is_some() => {
                         self.update(Direction::from_input(key).unwrap())?
                     }
-                    Key::Esc | Key::Char('q') => return Ok(()),
+                    Key::Esc | Key::Char('q') => {
+                        write!(self.stdout, "{}{}", clear::All, termion::cursor::Show)?;
+                        return Ok(());
+                    }
                     _ => (),
                 }
             }
@@ -102,29 +98,20 @@ impl Game {
 
     /// Draws the game board
     pub fn draw(&mut self) -> Result<(), Box<dyn Error>> {
-        write!(self.stdout, "{}{}", clear::All, cursor::Goto(1, 1))?;
+        write!(self.stdout, "{}{}", clear::All, termion::cursor::Hide)?;
 
-        for row in self.rows.iter() {
-            let mut top = String::new();
-            let mut upper_lower_middle = String::new();
-            let mut middle = String::new();
-            let mut bottom = String::new();
+        for (row_index, row) in self.rows.iter().enumerate() {
+            let mut x: u16 = 1;
+            let y: u16 = (7 * row_index as u16) + 1;
 
             for cell in row.iter() {
-                middle.push_str(&format!("{}", cell));
-                top.push_str(BLOCK_TOP);
-                upper_lower_middle.push_str(BLOCK_MIDDLE);
-                bottom.push_str(BLOCK_BOTTOM);
+                write!(self.stdout, "{}{}", cursor::Goto(x, y), cell)?;
+                x += 14;
             }
-
-            write!(self.stdout, "{}\n\r", top)?;
-            write!(self.stdout, "{0}\n\r{0}\n\r", upper_lower_middle)?;
-            write!(self.stdout, "{}\n\r", middle)?;
-            write!(self.stdout, "{0}\n\r{0}\n\r", upper_lower_middle)?;
-            write!(self.stdout, "{}\n\r", bottom)?;
+            write!(self.stdout, "\n\r")?;
         }
 
-        write!(self.stdout, "Use the arrow or WASD keys to move.\n\r")?;
+        write!(self.stdout, "\n\rUse the arrow or WASD keys to move.\n\r")?;
         write!(self.stdout, "Press q or ESC to quit the game.\n\r")?;
 
         self.stdout.flush()?;
