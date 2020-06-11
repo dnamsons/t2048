@@ -186,7 +186,7 @@ impl Game {
                 let initial_value: u32 = self.rows[i][j].value;
 
                 for l in i + 1..BOARD_HEIGHT {
-                    if self.rows[i][l].is_empty()
+                    if self.rows[l][j].is_empty()
                         || (self.rows[l][j] == self.rows[l - 1][j]
                             && self.rows[l - 1][j] == initial_value)
                     {
@@ -320,7 +320,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn it_moves_down_properly() -> Result<(), Box<dyn Error>> {
         let mut game = setup_with_grid(vec![
             vec![0, 2, 0, 0],
