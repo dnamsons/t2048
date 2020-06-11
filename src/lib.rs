@@ -269,6 +269,11 @@ mod tests {
     fn setup_with_grid(grid_values: Vec<Vec<u32>>) -> Result<Game, Box<dyn Error>> {
         let mut game = Game::new()?;
 
+        game.rows = build_rows(grid_values);
+        Ok(game)
+    }
+
+    fn build_rows(grid_values: Vec<Vec<u32>>) -> [[Cell; BOARD_WIDTH]; BOARD_HEIGHT] {
         let mut grid = [[Cell::new(); BOARD_WIDTH]; BOARD_HEIGHT];
         for (r_i, row) in grid_values.iter().enumerate() {
             for (c_i, cell_value) in row.iter().enumerate() {
@@ -276,13 +281,12 @@ mod tests {
             }
         }
 
-        game.rows = grid;
-        Ok(game)
+        grid
     }
 
     #[test]
-    fn it_creates_an_empty_grid_with_one_value() -> Result<(), Box<dyn Error>> {
-        let game = Game::new()?;
+    fn it_creates_an_empty_grid_with_one_value() {
+        let game = Game::new().unwrap();
 
         assert!(
             game.rows
@@ -291,12 +295,11 @@ mod tests {
                 .count()
                 == 1
         );
-        Ok(())
     }
 
     #[test]
-    fn add_block_randomly_adds_a_new_value() -> Result<(), Box<dyn Error>> {
-        let mut game = Game::new()?;
+    fn add_block_randomly_adds_a_new_value() {
+        let mut game = Game::new().unwrap();
         game.add_block();
 
         assert!(
@@ -306,30 +309,114 @@ mod tests {
                 .count()
                 == 2
         );
-        Ok(())
     }
 
     #[test]
-    fn add_block_with_full_grid_does_not_add_a_value() -> Result<(), Box<dyn Error>> {
+    fn add_block_with_full_grid_does_not_add_a_value() {
         let full_grid = vec![vec![2; 4]; 4];
-        let mut game = setup_with_grid(full_grid)?;
+        let mut game = setup_with_grid(full_grid).unwrap();
         game.add_block();
 
         assert_eq!(game.rows, [[2; 4]; 4]);
-        Ok(())
     }
 
     #[test]
-    fn it_moves_down_properly() -> Result<(), Box<dyn Error>> {
+    fn it_moves_properly_when_there_are_blocks_to_move_to() {
         let mut game = setup_with_grid(vec![
             vec![0, 2, 0, 0],
             vec![0, 0, 0, 0],
             vec![0, 0, 0, 0],
             vec![2, 0, 0, 0],
-        ])?;
+        ])
+        .unwrap();
+        let expected = build_rows(vec![
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![2, 2, 0, 0],
+        ]);
 
         assert!(game.move_down());
-        assert_eq!(game.rows[3][1], 2);
-        Ok(())
+        assert_eq!(game.rows, expected);
+    }
+
+    #[test]
+    fn it_adds_cell_values_when_they_are_the_same() {
+        let mut game = setup_with_grid(vec![
+            vec![0, 0, 2, 2],
+            vec![0, 0, 4, 2],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ])
+        .unwrap();
+        let expected = build_rows(vec![
+            vec![0, 0, 0, 4],
+            vec![0, 0, 4, 2],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ]);
+
+        assert!(game.move_right());
+        assert_eq!(game.rows, expected);
+    }
+
+    #[test]
+    fn it_does_not_add_more_than_two_cell_values_and_starts_addition_from_the_end() {
+        let mut game = setup_with_grid(vec![
+            vec![2, 2, 2, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ])
+        .unwrap();
+        let expected = build_rows(vec![
+            vec![4, 2, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ]);
+
+        assert!(game.move_left());
+        assert_eq!(game.rows, expected);
+    }
+
+    #[test]
+    fn it_both_moves_and_adds_cell_values_in_one_move() {
+        let mut game = setup_with_grid(vec![
+            vec![2, 4, 0, 0],
+            vec![0, 0, 8, 16],
+            vec![0, 4, 0, 16],
+            vec![2, 0, 8, 0],
+        ])
+        .unwrap();
+        let expected = build_rows(vec![
+            vec![4, 8, 16, 32],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ]);
+
+        assert!(game.move_up());
+        assert_eq!(game.rows, expected);
+    }
+
+    #[test]
+    fn it_does_not_add_a_newly_created_cell_value_in_the_same_move() {
+        let mut game = setup_with_grid(vec![
+            vec![4, 0, 0, 8],
+            vec![2, 0, 0, 4],
+            vec![2, 0, 0, 4],
+            vec![0, 0, 0, 0],
+        ])
+        .unwrap();
+        let expected = build_rows(vec![
+            vec![4, 0, 0, 8],
+            vec![4, 0, 0, 8],
+            vec![0, 0, 0, 0],
+            vec![0, 0, 0, 0],
+        ]);
+
+        assert!(game.move_up());
+        assert_eq!(game.rows, expected);
     }
 }
