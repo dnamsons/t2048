@@ -1,4 +1,4 @@
-# 2048
+<h1 align="center">t2048</h1>
 
 A simple 2048 game on the terminal written in Rust.
 
