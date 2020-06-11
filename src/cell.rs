@@ -6,11 +6,11 @@ use termion::color::{
 use termion::cursor::Left;
 
 /// The top of a cell
-const BLOCK_TOP: &str = "┌────────────┐";
+const BLOCK_TOP: &'static str = "┌────────────┐";
 /// The middle parts of a cell
-const BLOCK_MIDDLE: &str = "│            │";
+const BLOCK_MIDDLE: &'static str = "│            │";
 /// The bottom of a cell
-const BLOCK_BOTTOM: &str = "└────────────┘";
+const BLOCK_BOTTOM: &'static str = "└────────────┘";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Cell {
