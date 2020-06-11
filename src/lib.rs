@@ -40,9 +40,21 @@ impl Direction {
     }
 }
 
+enum GameState {
+    Running,
+    Lost,
+}
+
+impl Default for GameState {
+    fn default() -> GameState {
+        GameState::Running
+    }
+}
+
 pub struct Game {
     rows: [[Cell; BOARD_WIDTH]; BOARD_HEIGHT],
     stdout: RawTerminal<Stdout>,
+    state: GameState,
 }
 
 impl Game {
@@ -51,6 +63,7 @@ impl Game {
         let mut game = Game {
             rows: [[Cell::new(); BOARD_WIDTH]; BOARD_HEIGHT],
             stdout: stdout().into_raw_mode()?,
+            state: GameState::default(),
         };
         game.add_block();
         Ok(game)
@@ -90,6 +103,9 @@ impl Game {
 
         if moved {
             self.add_block();
+            if self.no_moves_left() {
+                self.state = GameState::Lost;
+            }
             self.draw()?;
         }
 
@@ -111,7 +127,11 @@ impl Game {
             write!(self.stdout, "\n\r")?;
         }
 
-        write!(self.stdout, "\n\rUse the arrow or WASD keys to move.\n\r")?;
+        let row_text = match self.state {
+            GameState::Running => "Use the arrow or WASD keys to move.",
+            GameState::Lost => "You Lost!",
+        };
+        write!(self.stdout, "\n\r{}\n\r", row_text)?;
         write!(self.stdout, "Press q or ESC to quit the game.\n\r")?;
 
         self.stdout.flush()?;
@@ -145,6 +165,20 @@ impl Game {
         }
     }
 
+    fn no_moves_left(&mut self) -> bool {
+        self.rows.iter().enumerate().all(|(i, row)| {
+            row.iter().all(|r| !r.is_empty())
+                && row.iter().enumerate().all(|(j, cell)| {
+                    (j == 0 || cell != &self.rows[i][j - 1])
+                        && (i == 0 || cell != &self.rows[i - 1][j])
+                })
+        })
+    }
+
+    fn can_move_into(&mut self, from: Cell, to: Cell, initial_value: u32) -> bool {
+        to.is_empty() || (from == to && from == initial_value)
+    }
+
     fn move_up(&mut self) -> bool {
         let mut moved = false;
 
@@ -157,10 +191,7 @@ impl Game {
                 let initial_value: u32 = self.rows[i][j].value;
 
                 for l in (0..i).rev() {
-                    if self.rows[l][j].is_empty()
-                        || (self.rows[l][j] == self.rows[l + 1][j]
-                            && self.rows[l + 1][j] == initial_value)
-                    {
+                    if self.can_move_into(self.rows[l + 1][j], self.rows[l][j], initial_value) {
                         self.rows[l][j].move_from(self.rows[l + 1][j]);
                         self.rows[l + 1][j].clear();
                         moved = true;
@@ -186,10 +217,7 @@ impl Game {
                 let initial_value: u32 = self.rows[i][j].value;
 
                 for l in i + 1..BOARD_HEIGHT {
-                    if self.rows[l][j].is_empty()
-                        || (self.rows[l][j] == self.rows[l - 1][j]
-                            && self.rows[l - 1][j] == initial_value)
-                    {
+                    if self.can_move_into(self.rows[l - 1][j], self.rows[l][j], initial_value) {
                         self.rows[l][j].move_from(self.rows[l - 1][j]);
                         self.rows[l - 1][j].clear();
                         moved = true;
@@ -215,10 +243,7 @@ impl Game {
                 let initial_value: u32 = self.rows[i][j].value;
 
                 for l in (0..j).rev() {
-                    if self.rows[i][l].is_empty()
-                        || (self.rows[i][l] == self.rows[i][l + 1]
-                            && self.rows[i][l + 1] == initial_value)
-                    {
+                    if self.can_move_into(self.rows[i][l + 1], self.rows[i][l], initial_value) {
                         self.rows[i][l].move_from(self.rows[i][l + 1]);
                         self.rows[i][l + 1].clear();
                         moved = true;
@@ -313,11 +338,37 @@ mod tests {
 
     #[test]
     fn add_block_with_full_grid_does_not_add_a_value() {
-        let full_grid = vec![vec![2; 4]; 4];
+        let full_grid = vec![vec![8; 4]; 4];
         let mut game = setup_with_grid(full_grid).unwrap();
         game.add_block();
 
-        assert_eq!(game.rows, [[2; 4]; 4]);
+        assert_eq!(game.rows, [[8; 4]; 4]);
+    }
+
+    #[test]
+    fn move_returns_false_if_no_move_happened() {
+        let mut game = setup_with_grid(vec![
+            vec![2, 4, 2, 4],
+            vec![4, 2, 4, 2],
+            vec![2, 4, 2, 4],
+            vec![4, 2, 4, 2],
+        ])
+        .unwrap();
+
+        assert!(!game.move_down());
+    }
+
+    #[test]
+    fn no_moves_left_works() {
+        let mut game = setup_with_grid(vec![
+            vec![2, 4, 2, 4],
+            vec![4, 2, 4, 2],
+            vec![2, 4, 2, 4],
+            vec![4, 2, 4, 2],
+        ])
+        .unwrap();
+
+        assert!(game.no_moves_left())
     }
 
     #[test]
